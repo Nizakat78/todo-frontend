@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Task } from '../types';
 import Input from './ui/Input';
+import Textarea from './ui/Textarea';
 import Button from './ui/Button';
 
 interface TaskFormProps {
@@ -69,9 +70,8 @@ const TaskForm: React.FC<TaskFormProps> = ({
         error={error && !title.trim() ? 'Title is required' : undefined}
       />
 
-      <Input
+      <Textarea
         label="Description"
-        type="textarea"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         placeholder="Enter task description (optional)"
