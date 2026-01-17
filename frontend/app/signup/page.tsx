@@ -38,9 +38,10 @@ const SignupPage = () => {
 
     try {
       await signup(email, password, name);
-      // Redirect to dashboard after successful signup
-      router.push('/dashboard');
-      router.refresh(); // Refresh to update the UI based on auth state
+      // Small delay to ensure auth state is updated before redirect
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 100);
     } catch (err) {
       setError('Signup failed. Please try again.');
       console.error('Signup error:', err);

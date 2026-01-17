@@ -49,7 +49,7 @@ const FilterSort: React.FC<FilterSortProps> = ({ tasks, onFilterAndSort }) => {
     });
 
     onFilterAndSort(filtered);
-  }, [tasks, filter, sortBy, sortOrder, searchTerm, onFilterAndSort]);
+  }, [tasks, filter, sortBy, sortOrder, searchTerm]); // Removed onFilterAndSort from dependencies
 
   return (
     <div className="bg-white p-4 rounded-lg shadow">

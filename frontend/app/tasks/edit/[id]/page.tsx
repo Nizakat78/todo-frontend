@@ -14,22 +14,22 @@ const EditTaskPage = () => {
   const router = useRouter();
   const params = useParams();
   const taskId = params.id as string;
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (taskId) {
+    if (taskId && !isAuthLoading) {
       fetchTask();
     }
-  }, [taskId]);
+  }, [taskId, isAuthLoading]);
 
   const fetchTask = async () => {
     try {
       setLoading(true);
-      if (user?.id) {
+      if (user?.id && isAuthenticated) {
         const response = await taskApi.getById(user.id, taskId);
         setTask(response.task);
       } else {
@@ -42,6 +42,17 @@ const EditTaskPage = () => {
       setLoading(false);
     }
   };
+
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-lg text-gray-600">Checking authentication status...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
@@ -64,11 +75,12 @@ const EditTaskPage = () => {
 
   const handleSubmit = async (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => {
     try {
-      if (user?.id) {
+      if (user?.id && isAuthenticated) {
         await taskApi.update(user.id, taskId, taskData);
         // Redirect to dashboard after successful update
         router.push('/dashboard');
-        router.refresh(); // Refresh to update the UI
+      } else {
+        setError('User not authenticated');
       }
     } catch (error) {
       console.error('Error updating task:', error);
@@ -83,11 +95,12 @@ const EditTaskPage = () => {
   const handleDelete = async () => {
     if (window.confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
       try {
-        if (user?.id) {
+        if (user?.id && isAuthenticated) {
           await taskApi.delete(user.id, taskId);
           // Redirect to dashboard after successful deletion
           router.push('/dashboard');
-          router.refresh(); // Refresh to update the UI
+        } else {
+          setError('User not authenticated');
         }
       } catch (error) {
         console.error('Error deleting task:', error);

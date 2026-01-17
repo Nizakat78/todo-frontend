@@ -39,7 +39,7 @@ async def login(
         )
 
     # Create JWT token
-    access_token_expires = timedelta(minutes=15)  # 15 minutes expiry
+    access_token_expires = timedelta(hours=24)  # 24 hours expiry
     token_data = {"sub": str(user.id)}
     access_token = create_access_token(
         data=token_data, expires_delta=access_token_expires
@@ -93,7 +93,7 @@ async def signup(
     session.refresh(user)
 
     # Create JWT token
-    access_token_expires = timedelta(minutes=15)  # 15 minutes expiry
+    access_token_expires = timedelta(hours=24)  # 24 hours expiry
     token_data = {"sub": str(user.id)}
     access_token = create_access_token(
         data=token_data, expires_delta=access_token_expires
@@ -142,7 +142,7 @@ async def get_current_user_info(current_user_id: str = Depends(get_current_user)
         )
 
     # Create a temporary token for the response (same as the one used for auth)
-    access_token_expires = timedelta(minutes=15)
+    access_token_expires = timedelta(hours=24)  # 24 hours expiry
     token_data = {"sub": str(user.id)}
     access_token = create_access_token(
         data=token_data, expires_delta=access_token_expires

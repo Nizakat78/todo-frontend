@@ -24,9 +24,10 @@ const LoginPage = () => {
 
     try {
       await login(email, password);
-      // Redirect to dashboard after successful login
-      router.push('/dashboard');
-      router.refresh(); // Refresh to update the UI based on auth state
+      // Small delay to ensure auth state is updated before redirect
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 100);
     } catch (err) {
       setError('Invalid email or password. Please try again.');
       console.error('Login error:', err);

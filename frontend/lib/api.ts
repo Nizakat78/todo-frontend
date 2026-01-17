@@ -42,7 +42,17 @@ const auth = {
   login: async (email: string, password: string): Promise<LoginResponse> => {
     // Call the backend auth endpoint to get JWT token
     const response = await apiClient.post('/auth/login', { email, password });
-    const { user, token } = response.data;
+    // Backend returns { success, data: { id, email, name, ... }, token }
+    const { data: userData, token } = response.data;
+
+    // Map the user data to expected format
+    const user: User = {
+      id: userData.id,
+      email: userData.email,
+      name: userData.name,
+      createdAt: userData.created_at,
+      updatedAt: userData.updated_at,
+    };
 
     // Store in localStorage for the session
     localStorage.setItem('token', token);
@@ -54,7 +64,17 @@ const auth = {
   signup: async (email: string, password: string, name?: string): Promise<LoginResponse> => {
     // Call the backend auth endpoint to register user and get JWT token
     const response = await apiClient.post('/auth/signup', { email, password, name });
-    const { user, token } = response.data;
+    // Backend returns { success, data: { id, email, name, ... }, token }
+    const { data: userData, token } = response.data;
+
+    // Map the user data to expected format
+    const user: User = {
+      id: userData.id,
+      email: userData.email,
+      name: userData.name,
+      createdAt: userData.created_at,
+      updatedAt: userData.updated_at,
+    };
 
     // Store in localStorage for the session
     localStorage.setItem('token', token);
@@ -75,36 +95,72 @@ const auth = {
   },
 };
 
+// Helper function to map backend task to frontend Task type
+const mapTask = (backendTask: any): Task => ({
+  id: backendTask.id,
+  title: backendTask.title,
+  description: backendTask.description,
+  completed: backendTask.completed,
+  createdAt: backendTask.created_at,
+  updatedAt: backendTask.updated_at,
+  userId: backendTask.user_id,
+});
+
 // Task API calls
 const tasks = {
   getAll: async (userId: string): Promise<GetTasksResponse> => {
     const response = await apiClient.get(`/${userId}/tasks`);
-    return response.data;
+    // Backend returns { success, data: [tasks], meta: { total, limit, offset }, timestamp }
+    const { data: tasksData, meta } = response.data;
+    return {
+      tasks: tasksData.map(mapTask),
+      totalCount: meta?.total || tasksData.length,
+    };
   },
 
   getById: async (userId: string, taskId: string): Promise<GetTaskResponse> => {
     const response = await apiClient.get(`/${userId}/tasks/${taskId}`);
-    return response.data;
+    // Backend returns { success, data: task, timestamp }
+    const { data: taskData } = response.data;
+    return {
+      task: mapTask(taskData),
+    };
   },
 
   create: async (userId: string, taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'userId'>): Promise<TaskModificationResponse> => {
     const response = await apiClient.post(`/${userId}/tasks`, taskData);
-    return response.data;
+    // Backend returns { success, data: task, timestamp }
+    const { data: createdTask } = response.data;
+    return {
+      task: mapTask(createdTask),
+      message: 'Task created successfully',
+    };
   },
 
   update: async (userId: string, taskId: string, taskData: Partial<Task>): Promise<TaskModificationResponse> => {
     const response = await apiClient.put(`/${userId}/tasks/${taskId}`, taskData);
-    return response.data;
+    // Backend returns { success, data: task, timestamp }
+    const { data: updatedTask } = response.data;
+    return {
+      task: mapTask(updatedTask),
+      message: 'Task updated successfully',
+    };
   },
 
   delete: async (userId: string, taskId: string): Promise<{ message: string }> => {
-    const response = await apiClient.delete(`/${userId}/tasks/${taskId}`);
-    return response.data;
+    await apiClient.delete(`/${userId}/tasks/${taskId}`);
+    // Backend returns 204 No Content
+    return { message: 'Task deleted successfully' };
   },
 
   updateCompletion: async (userId: string, taskId: string, completed: boolean): Promise<TaskModificationResponse> => {
     const response = await apiClient.patch(`/${userId}/tasks/${taskId}/complete`, { completed });
-    return response.data;
+    // Backend returns { success, data: task, timestamp }
+    const { data: updatedTask } = response.data;
+    return {
+      task: mapTask(updatedTask),
+      message: 'Task completion updated successfully',
+    };
   },
 };
 

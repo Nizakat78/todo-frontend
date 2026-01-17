@@ -12,7 +12,18 @@ import { useAuth } from '../../../hooks/useAuth';
 
 const AddTaskPage = () => {
   const router = useRouter();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-lg text-gray-600">Checking authentication status...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
@@ -34,16 +45,31 @@ const AddTaskPage = () => {
   }
 
   const handleSubmit = async (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => {
+    console.log('handleSubmit called', { user, isAuthenticated, taskData });
     try {
-      if (user?.id) {
+      if (user?.id && isAuthenticated) {
+        console.log('Creating task for user:', user.id);
         await taskApi.create(user.id, taskData);
+        console.log('Task created successfully, redirecting to dashboard');
         // Redirect to dashboard after successful creation
         router.push('/dashboard');
-        router.refresh(); // Refresh to update the UI
+      } else {
+        console.error('User not authenticated when trying to create task', { user, isAuthenticated });
+        // Redirect to login if not authenticated
+        router.push('/login');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating task:', error);
-      // In a real app, you might want to show an error message to the user
+      // Check if the error is related to authentication
+      if (error?.response?.status === 401) {
+        // If unauthorized, clear auth and redirect to login
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        router.push('/login');
+      } else {
+        // For other errors, stay on the page and show error (in a real app)
+        console.log('Non-authentication error, staying on page');
+      }
     }
   };
 

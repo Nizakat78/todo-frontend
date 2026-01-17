@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Task } from '../../types';
 import { tasks as taskApi } from '../../lib/api';
 import TaskCard from '../../components/TaskCard';
@@ -10,28 +11,38 @@ import Button from '../../components/ui/Button';
 import { useAuth } from '../../hooks/useAuth';
 
 const DashboardPage = () => {
+  const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+
+  const handleAddTask = () => {
+    console.log('handleAddTask called - attempting to navigate to /tasks/add');
+    // Navigate to add task page
+    router.push('/tasks/add');
+  };
 
   // Fetch tasks when component mounts
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!isAuthLoading && isAuthenticated) {
       fetchTasks();
     }
-  }, [isAuthenticated]);
+  }, [isAuthLoading, isAuthenticated]);
 
   const fetchTasks = async () => {
     try {
       setLoading(true);
-      if (user && user.id) {
+      // Only attempt to fetch tasks if we have a valid user and they're authenticated
+      if (user && user.id && isAuthenticated) {
         const response = await taskApi.getAll(user.id);
         setTasks(response.tasks);
         setFilteredTasks(response.tasks);
-      } else {
+        setError(null); // Clear any previous errors
+      } else if (!isAuthLoading && !isAuthenticated) {
+        // Only show error if auth is loaded but user is not authenticated
         setError('User not authenticated');
       }
     } catch (err) {
@@ -81,15 +92,26 @@ const DashboardPage = () => {
     }
   };
 
-  const handleFilterAndSort = (filtered: Task[]) => {
+  const handleFilterAndSort = React.useCallback((filtered: Task[]) => {
     setFilteredTasks(filtered);
-  };
+  }, []);
 
   // Calculate task statistics
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter(task => task.completed).length;
   const pendingTasks = totalTasks - completedTasks;
   const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-lg text-gray-600">Checking authentication status...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -191,14 +213,15 @@ const DashboardPage = () => {
             <h1 className="text-3xl font-bold text-gray-900">Your Tasks</h1>
             <p className="text-gray-600 mt-2">Manage and organize your tasks efficiently</p>
           </div>
-          <Link href="/tasks/add">
-            <Button variant="primary" className="flex items-center">
-              <svg className="mr-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Add New Task
-            </Button>
-          </Link>
+          <button
+            onClick={handleAddTask}
+            className="flex items-center px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-300 shadow-sm hover:shadow-md"
+          >
+            <svg className="mr-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Add New Task
+          </button>
         </div>
 
         {/* Filter/Sort section */}
@@ -216,14 +239,15 @@ const DashboardPage = () => {
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No tasks yet</h3>
             <p className="text-gray-600 mb-6">Get started by creating your first task!</p>
-            <Link href="/tasks/add">
-              <Button variant="primary" size="lg" className="px-8 py-3">
-                <svg className="mr-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Create your first task
-              </Button>
-            </Link>
+            <button
+              onClick={handleAddTask}
+              className="px-8 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-300 shadow-sm hover:shadow-md"
+            >
+              <svg className="mr-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Create your first task
+            </button>
           </div>
         ) : (
           <div className="space-y-4">
